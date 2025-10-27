@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simuladores de Eletromagnetismo</title>
+    <style>
+        :root {
+            --primary-purple: #6a00c3;
+            --primary-purple-hover: #5a00a3;
+            --bg-light: #f3e8fb;
+            --border-color: #d1b3e6;
+        }
+
+        /* Estilos globais */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100vh; 
+            width: 100vw;  
+            overflow: hidden; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex; /* Mantido para o container do iframe */
+            flex-direction: column; 
+            background-color: var(--bg-light);
+        }
+
+        /* Barra de Navegação (Abas) */
+        #tab-navigation {
+            /* MODIFICADO: Posicionamento absoluto */
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            
+            /* MODIFICADO: Layout vertical */
+            display: flex;
+            flex-direction: column; /* Empilha os botões */
+
+            /* Estilo do container (como o da imagem) */
+            background-color: #fff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            padding: 10px;
+            z-index: 100;
+            border-radius: 8px;
+            width: 220px; /* Largura do menu */
+        }
+
+        .tab-link {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: 2px solid var(--border-color);
+            background-color: #f9f9f9;
+            color: var(--primary-purple);
+            font-weight: 600;
+            border-radius: 8px;
+            
+            /* MODIFICADO: Margem para empilhamento */
+            margin-top: 8px;
+            
+            transition: background-color 0.2s, color 0.2s;
+            text-align: center; /* Centraliza o texto */
+        }
+        
+        /* Remove a margem do primeiro botão */
+        .tab-link:first-child {
+            margin-top: 0;
+        }
+
+        .tab-link:hover {
+            background-color: var(--bg-light);
+        }
+
+        /* Estilo da aba ativa */
+        .tab-link.active {
+            background-color: var(--primary-purple);
+            color: white;
+            border-color: var(--primary-purple);
+        }
+
+        /* Contêiner do Simulador (onde o iframe ficará) */
+        #simulator-container {
+            flex-grow: 1; 
+            width: 100%;
+            height: 100%; 
+        }
+
+        /* O Iframe em si */
+        #simulator-iframe {
+            width: 100%;
+            height: 100%;
+            border: none; 
+        }
+    </style>
+</head>
+<body>
+
+    <nav id="tab-navigation">
+        <button class="tab-link active" data-src="Campos_Eletricos.html">Campos Elétricos</button>
+        <button class="tab-link" data-src="Campos_Magneticos.html">Campos Magnéticos</button>
+        <button class="tab-link" data-src="Cuba_Eletrolitica_Campos_Equipotenciais.html">Cuba Eletrolítica</button>
+    </nav>
+
+    <main id="simulator-container">
+        <iframe id="simulator-iframe" src="Campos_Eletricos.html">
+            Seu navegador não suporta iframes.
+        </iframe>
+    </main>
+
+    <script>
+        const tabButtons = document.querySelectorAll('.tab-link');
+        const iframe = document.getElementById('simulator-iframe');
+
+        function onTabClick(event) {
+            tabButtons.forEach(button => {
+                button.classList.remove('active');
+            });
+            const clickedButton = event.currentTarget;
+            clickedButton.classList.add('active');
+            const fileToLoad = clickedButton.dataset.src;
+            iframe.src = fileToLoad;
+        }
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', onTabClick);
+        });
+    </script>
+
+</body>
+</html>

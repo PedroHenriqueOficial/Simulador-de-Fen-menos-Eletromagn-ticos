@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Cuba Eletrolítica — Campos e Equipotenciais (Simulador v2)</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+        :root{
+            /* Fundo Roxo */
+            --bg1: #f3e8fb; 
+            --bg2: #e0cffb;
+            --card-bg: rgba(255,255,255,0.95); /* Fundo branco para cards */
+            --primary: #0b66c3;
+            
+            /* MODIFICADO: Roxo para os botões */
+            --primary-purple: #6a00c3; 
+            --primary-purple-hover: #5a00a3; 
+            
+            --accent: #ffb057;
+            --text: #223;
+            --avatar-body: #d0dbe5;
+            --avatar-head: #ffffff;
+            --avatar-accent: #ffc107;
+            --secondary-color: #2a3b4c; 
+        }
+        html,body{height:100%;margin:0;font-family:Inter, "Segoe UI", Tahoma, sans-serif;background: linear-gradient(180deg,var(--bg1),var(--bg2));}
+        canvas{display:block;width:100vw;height:100vh;}
+        
+        /* MODIFICADO: Menu branco, como solicitado */
+        #controls{
+            position:absolute;left:12px;top:12px;padding:14px;border-radius:10px;
+            background: var(--card-bg); /* Fundo branco */
+            box-shadow:0 6px 20px rgba(20,30,40,0.12);
+            border: 1px solid rgba(0,0,0,0.06); /* Borda neutra */
+            width: 240px; 
+            z-index:30;
+        }
+        
+        #controls label{font-size:0.85rem;color:var(--text);display:block;margin-top:8px;}
+        #controls input[type="range"]{width:100%}
+        
+        /* MODIFICADO: Botões roxos sólidos, como na imagem */
+        #controls button{
+            padding:8px 10px;
+            border-radius:8px;
+            border: 1px solid var(--primary-purple); /* Borda roxa */
+            background: var(--primary-purple); /* Fundo roxo */
+            color: white; /* Texto branco */
+            cursor:pointer;
+            font-weight:600;
+            display: block;
+            width: 100%;
+            margin-top: 8px;
+            box-sizing: border-box; 
+            transition: background-color 0.2s; /* Transição suave */
+        }
+        
+        /* Efeito hover para os botões */
+        #controls button:hover {
+            background: var(--primary-purple-hover);
+            border-color: var(--primary-purple-hover);
+        }
+        
+        /* REMOVIDO: .btn-primary não é mais necessário,
+           pois o feedback é dado pelo texto (ON/OFF) */
+        #controls .btn-primary{
+             /* Estilo base já é o desejado */
+        }
+        
+        #controls .small{font-size:0.85rem;color:#444;margin-bottom: 8px;}
+        .small-tag{font-size:0.8rem;color:#666;margin-left:6px;}
+
+        /* --- Barra de Progresso do Cálculo --- */
+        #progress-bar {
+            width: 100%;
+            height: 6px;
+            background-color: #ddd;
+            border-radius: 3px;
+            margin-top: 10px;
+            overflow: hidden;
+            display: none; 
+        }
+        #progress-bar-inner {
+            width: 0%;
+            height: 100%;
+            background-color: var(--primary);
+            transition: width 0.1s ease-out;
+        }
+        #status-text {
+            font-size: 0.8rem;
+            color: #555;
+            margin-top: 4px;
+            min-height: 1em;
+        }
+
+        /* --- Avatar e Explicação --- */
+        .explanation-interface{
+            position:absolute;right:18px;bottom:18px;display:flex;gap:18px;align-items:flex-end;z-index:30;
+        }
+        .explanation-card{
+            width:420px;
+            background:var(--card-bg);
+            padding:18px;
+            border-radius:12px;
+            border:1px solid rgba(0,0,0,0.06);
+            box-shadow:0 8px 30px rgba(10,20,30,0.08);
+        }
+        .explanation-card h2{margin:0;color:var(--primary);font-size:1.1rem;}
+        .explanation-card p{margin:8px 0 0 0;color:var(--text);line-height:1.45;}
+        
+        .explanation-card p .highlight {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: var(--primary);
+            display: block;
+            margin: 10px 0;
+            text-align: center;
+        }
+        
+        .nav-controls{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+        .nav-controls button{ 
+            padding:6px 12px;
+            border-radius:16px;
+            border:2px solid var(--primary);
+            background:transparent;
+            color:var(--primary);
+            cursor:pointer;
+            font-weight:700
+        }
+        .nav-controls button:disabled{opacity:0.45;cursor:not-allowed}
+        
+        .hint{font-size:0.82rem;color:#556;padding-top:6px; margin-top: 8px; border-top: 1px solid #eee;}
+
+        /* --- CSS DO AVATAR ROBÔ --- */
+        .avatar-area {
+            width: 150px;
+            height: 220px;
+            position: relative;
+            animation: float 6s ease-in-out infinite;
+        }
+        .avatar-head {
+            width: 100px;
+            height: 100px;
+            background: var(--avatar-head);
+            border-radius: 50%;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 4px solid var(--secondary-color);
+        }
+        .avatar-eye {
+            width: 20px;
+            height: 20px;
+            background: var(--secondary-color);
+            border-radius: 50%;
+            position: absolute;
+            top: 35px;
+            animation: blink 4s infinite;
+        }
+        .avatar-eye.left { left: 20px; }
+        .avatar-eye.right { right: 20px; }
+        .avatar-antenna {
+            width: 6px;
+            height: 40px;
+            background: var(--secondary-color);
+            position: absolute;
+            left: 50%;
+            top: -35px;
+            transform: translateX(-50%);
+        }
+        .avatar-antenna::after {
+            content: '';
+            width: 16px;
+            height: 16px;
+            background: var(--avatar-accent);
+            border-radius: 50%;
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: antenna-glow 2s infinite alternate;
+        }
+        .avatar-mouth {
+            width: 30px;
+            height: 5px;
+            background: var(--secondary-color);
+            border-radius: 5px;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .avatar-body {
+            width: 120px;
+            height: 120px;
+            background: var(--avatar-body);
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 30px 30px 15px 15px;
+            border: 4px solid var(--secondary-color);
+        }
+        
+        /* --- Animações do Avatar Robô --- */
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        @keyframes blink {
+            0%, 95%, 100% { transform: scaleY(1); }
+            97% { transform: scaleY(0.1); }
+        }
+        @keyframes antenna-glow {
+            from { box-shadow: 0 0 5px var(--avatar-accent); }
+            to { box-shadow: 0 0 15px var(--avatar-accent); }
+        }
+        .avatar-area.talking .avatar-mouth {
+            animation: talk 0.5s infinite;
+        }
+        @keyframes talk {
+            0% { height: 5px; }
+            50% { height: 15px; border-radius: 50%; }
+            100% { height: 5px; }
+        }
+        
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .explanation-interface {
+                flex-direction: column-reverse;
+                align-items: center;
+                bottom: 10px;
+                right: 0;
+                left: 0;
+                width: 100%;
+            }
+            .explanation-card {
+                width: 85%;
+                padding: 15px;
+            }
+            .avatar-area {
+                transform: scale(0.8);
+                height: 180px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="simCanvas"></canvas>
+
+    <div id="controls">
+        <div class="small">Cuba Eletrolítica de placas paralelas.</div>
+        
+        <label>Potencial das placas (±V): <span id="voltageLabel">10</span> V</label>
+        <input id="voltageRange" type="range" min="1" max="50" value="10" />
+        
+        <button id="toggleField">Campo (Setas): ON</button>
+        <button id="toggleEquip" class="btn-primary">Equipotenciais: ON</button>
+        <button id="resetBtn">Reset Padrão</button>
+        <button id="clearBtn">Remover Eletrodos</button>
+
+        <div id="status-text">Status: Pronto.</div>
+        <div id="progress-bar">
+            <div id="progress-bar-inner"></div>
+        </div>
+
+        <div class="hint"><strong>Dica:</strong> Arraste as placas. <br><strong>Botão Direito:</strong> Adiciona nova placa. <br><strong>Clique Duplo:</strong> Inverte potencial.</div>
+    </div>
+
+    <div class="explanation-interface">
+        <div id="avatar-area" class="avatar-area">
+            <div class="avatar-body"></div>
+            <div class="avatar-head">
+                <div class="avatar-antenna"></div>
+                <div class="avatar-eye left"></div>
+                <div class="avatar-eye right"></div>
+                <div class="avatar-mouth"></div>
+            </div>
+        </div>
+        <div class="explanation-card">
+            <h2 id="topic-title">Cuba Eletrolítica</h2>
+            <p id="explanation-text">Olá! Este simulador usa o Método da Relaxação para calcular o campo. Arraste as placas ou adicione novas com o botão direito para ver o campo se recalcular!</p>
+            <div class="nav-controls">
+                <button id="prev-btn" class="nav-button">Anterior</button>
+                <div class="small-tag" id="step-counter">1 / 6</div> 
+                <button id="next-btn" class="nav-button">Próximo</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+/*
+  Simulador: Cuba Eletrolítica (v2.4 - UI Botões Roxo)
+*/
+
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+let W = canvas.width = window.innerWidth;
+let H = canvas.height = window.innerHeight;
+
+window.addEventListener('resize', ()=>{ 
+    W = canvas.width = window.innerWidth; 
+    H = canvas.height = window.innerHeight;
+    GRID_WIDTH = Math.floor(W / CELL_SIZE);
+    GRID_HEIGHT = Math.floor(H / CELL_SIZE);
+    needsRecalculate = true;
+    draw(); 
+    requestCalculation();
+});
+
+/* ---- Controles ---- */
+const voltageRange = document.getElementById('voltageRange');
+const voltageLabel = document.getElementById('voltageLabel');
+const toggleFieldBtn = document.getElementById('toggleField');
+const toggleEquipBtn = document.getElementById('toggleEquip');
+const resetBtn = document.getElementById('resetBtn');
+const clearBtn = document.getElementById('clearBtn');
+const statusEl = document.getElementById('status-text');
+const progressBar = document.getElementById('progress-bar');
+const progressBarInner = document.getElementById('progress-bar-inner');
+
+/* ---- Avatar e explicação interativa ---- */
+const avatarArea = document.getElementById('avatar-area');
+const topicTitle = document.getElementById('topic-title');
+const explanationText = document.getElementById('explanation-text');
+const prevBtn = document.getElementById('prev-btn');
+const nextBtn = document.getElementById('next-btn');
+const stepCounter = document.getElementById('step-counter');
+
+const steps = [
+  {title:'Bem-vindo!', text:'Olá! Este simulador usa o <strong>Método da Relaxação</strong>, uma técnica de engenharia para calcular campos (baseado na Equação de Laplace): <span class="highlight">∇²V = 0</span>'},
+  {title:'Como Interagir', text:'As placas são "fronteiras" de potencial fixo. Você pode <strong>arrastá-las</strong>. Use <strong>clique direito</strong> para adicionar uma nova placa ou <strong>clique duplo</strong> para inverter seu potencial.'},
+  {title:'Linhas Equipotenciais (V)', text:'As faixas coloridas mostram áreas de <strong>mesmo potencial</strong> (Voltagem). A simulação calcula o potencial para cada célula da grelha e colore as faixas (ex: V=10V, V=-10V).'},
+  {title:'Linhas de Campo (E)', text:'As setas vermelhas mostram o <strong>Campo Elétrico</strong>, calculado a partir do gradiente do potencial: <span class="highlight">E = -∇V</span> Elas sempre apontam do potencial mais alto para o mais baixo.'},
+  {title:'E e V são Perpendiculares', text:'Observe como as linhas de campo (E) sempre cruzam as linhas equipotenciais (V) em um <strong>ângulo de 90 graus</strong>. Este é um princípio fundamental da eletrostática.'},
+  {title:'Exploração', text:'Tente criar um "capacitor de placas paralelas" e observe as linhas retas. Depois, mova uma placa para ver a <strong>"distorção de borda"</strong> (fringing) que ocorre no mundo real.'}
+];
+let currentStep = 0;
+
+function showStep(i){
+  currentStep = Math.max(0, Math.min(steps.length-1, i));
+  topicTitle.textContent = steps[currentStep].title;
+  explanationText.innerHTML = steps[currentStep].text;
+  stepCounter.textContent = (currentStep+1)+' / '+steps.length;
+  speakText(steps[currentStep].text);
+  prevBtn.disabled = currentStep===0;
+  nextBtn.disabled = currentStep===steps.length-1;
+}
+prevBtn.addEventListener('click', ()=> showStep(currentStep-1));
+nextBtn.addEventListener('click', ()=> showStep(currentStep+1)); 
+showStep(0);
+
+function speakText(t){
+  if(!window.speechSynthesis) return;
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = t;
+  let plainText = (tempDiv.textContent || tempDiv.innerText || '');
+  
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(plainText);
+  u.lang='pt-BR'; 
+  u.rate=1; 
+  u.pitch=1;
+  u.onstart = ()=> avatarArea.classList.add('talking');
+  u.onend = ()=> avatarArea.classList.remove('talking');
+  window.speechSynthesis.speak(u);
+}
+
+/* ---- Modelo Físico (Método da Relaxação) ---- */
+
+const CELL_SIZE = 8; 
+let GRID_WIDTH = Math.floor(W / CELL_SIZE);
+let GRID_HEIGHT = Math.floor(H / CELL_SIZE);
+
+let V_ANODE = parseFloat(voltageRange.value);
+let V_CATHODE = -parseFloat(voltageRange.value);
+const V_NEUTRAL = 0;
+
+const ITERATIONS_PER_FRAME = 200;
+const TOTAL_ITERATIONS_TARGET = 10000; 
+
+let potentialGrid;  
+let electrodeGrid;  
+
+let plates = []; 
+let dragging = null;
+let dragOffset = {x:0,y:0};
+let showField=true, showEquip=true;
+
+let isCalculating = false;
+let calculationDone = false;
+let needsRecalculate = true; 
+let totalIterations = 0;
+let calculationRequestId = null; 
+
+const ELECTRODE_NONE = 0;
+const ELECTRODE_ANODE = 1;
+const ELECTRODE_CATHODE = -1;
+
+function initializeGrids() {
+    potentialGrid = new Array(GRID_WIDTH).fill(0)
+        .map(() => new Array(GRID_HEIGHT).fill(V_NEUTRAL));
+        
+    electrodeGrid = new Array(GRID_WIDTH).fill(0)
+        .map(() => new Array(GRID_HEIGHT).fill(ELECTRODE_NONE));
+    
+    calculationDone = false;
+}
+
+function updateElectrodeGridFromPlates() {
+    initializeGrids();
+    
+    V_ANODE = parseFloat(voltageRange.value);
+    V_CATHODE = -V_ANODE;
+    
+    for(const p of plates) {
+        const i_start = Math.max(0, Math.floor(p.x / CELL_SIZE));
+        const i_end = Math.min(GRID_WIDTH, Math.floor((p.x + p.w) / CELL_SIZE));
+        const j_start = Math.max(0, Math.floor(p.y / CELL_SIZE));
+        const j_end = Math.min(GRID_HEIGHT, Math.floor((p.y + p.h) / CELL_SIZE));
+
+        const electrodeType = (p.potential > 0) ? ELECTRODE_ANODE : ELECTRODE_CATHODE;
+        const potentialValue = (p.potential > 0) ? V_ANODE : V_CATHODE;
+        
+        for(let i = i_start; i <= i_end; i++) {
+            for(let j = j_start; j <= j_end; j++) {
+                if(i < GRID_WIDTH && j < GRID_HEIGHT) {
+                    electrodeGrid[i][j] = electrodeType;
+                    potentialGrid[i][j] = potentialValue; 
+                }
+            }
+        }
+    }
+    needsRecalculate = true;
+}
+
+function relaxPotentialStep() {
+    let tempGrid = new Array(GRID_WIDTH).fill(0)
+        .map((_, i) => new Array(GRID_HEIGHT).fill(V_NEUTRAL).map((_, j) => potentialGrid[i][j]));
+
+    for (let i = 0; i < GRID_WIDTH; i++) {
+        for (let j = 0; j < GRID_HEIGHT; j++) {
+            
+            if (electrodeGrid[i][j] !== ELECTRODE_NONE) {
+                continue;
+            } else {
+                let V_top = (j > 0) ? potentialGrid[i][j-1] : V_NEUTRAL;
+                let V_bottom = (j < GRID_HEIGHT - 1) ? potentialGrid[i][j+1] : V_NEUTRAL;
+                let V_left = (i > 0) ? potentialGrid[i-1][j] : V_NEUTRAL;
+                let V_right = (i < GRID_WIDTH - 1) ? potentialGrid[i+1][j] : V_NEUTRAL;
+                
+                tempGrid[i][j] = (V_top + V_bottom + V_left + V_right) / 4;
+            }
+        }
+    }
+    potentialGrid = tempGrid;
+}
+
+function runCalculationLoop() {
+    if (!isCalculating) return;
+    
+    let iterationsForThisFrame = 0;
+    while(iterationsForThisFrame < ITERATIONS_PER_FRAME && totalIterations < TOTAL_ITERATIONS_TARGET) {
+        relaxPotentialStep();
+        iterationsForThisFrame++;
+        totalIterations++;
+    }
+    
+    let progress = Math.floor((totalIterations / TOTAL_ITERATIONS_TARGET) * 100);
+    statusEl.textContent = `Calculando... ${progress}%`;
+    progressBarInner.style.width = `${progress}%`;
+    
+    if (totalIterations < TOTAL_ITERATIONS_TARGET) {
+        requestAnimationFrame(runCalculationLoop);
+    } else {
+        isCalculating = false;
+        calculationDone = true;
+        totalIterations = 0;
+        statusEl.textContent = 'Cálculo concluído!';
+        progressBar.style.display = 'none';
+        draw(); 
+    }
+}
+
+function requestCalculation() {
+    if (isCalculating) {
+        isCalculating = false;
+    }
+    if (calculationRequestId) {
+        clearTimeout(calculationRequestId);
+    }
+
+    calculationRequestId = setTimeout(() => {
+        needsRecalculate = false;
+        isCalculating = true;
+        calculationDone = false;
+        totalIterations = 0;
+        
+        statusEl.textContent = 'Calculando... 0%';
+        progressBar.style.display = 'block';
+        progressBarInner.style.width = '0%';
+        
+        runCalculationLoop();
+    }, 150); 
+}
+
+/* ---- Funções de Desenho ---- */
+
+function drawPlates(){
+  for(const p of plates){
+    ctx.save();
+    ctx.fillStyle = p.potential>0 ? 'rgba(255,100,80,0.95)' : 'rgba(80,130,255,0.95)';
+    ctx.fillRect(p.x, p.y, p.w, p.h);
+    ctx.strokeStyle = '#314a5b';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(p.x, p.y, p.w, p.h);
+    ctx.fillStyle = '#102';
+    ctx.font = '14px Inter, Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText((p.potential>0?'+':'')+p.potential.toFixed(0)+' V', p.x + p.w/2, p.y - 8);
+    ctx.restore();
+  }
+}
+
+function drawEquipotentials() {
+    if (!calculationDone && !isCalculating) return;
+    
+    const levels = 20; 
+    const tolerance = (V_ANODE - V_CATHODE) / levels / 2.5; 
+
+    for (let i = 0; i < GRID_WIDTH; i++) {
+        for (let j = 0; j < GRID_HEIGHT; j++) {
+            if (electrodeGrid[i][j] !== ELECTRODE_NONE) continue;
+            
+            const V = potentialGrid[i][j];
+            
+            for(let level = V_CATHODE; level <= V_ANODE; level += (V_ANODE - V_CATHODE) / levels) {
+                if (Math.abs(level) < tolerance * 1.5) continue;
+                
+                if (Math.abs(V - level) < tolerance) {
+                    if(level > 0) {
+                        ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
+                    } else {
+                        ctx.fillStyle = 'rgba(0, 0, 255, 0.2)';
+                    }
+                    ctx.fillRect(i * CELL_SIZE, j * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                    break;
+                }
+            }
+        }
+    }
+}
+
+function getFieldAt(i, j) {
+    if (i <= 0 || i >= GRID_WIDTH - 1 || j <= 0 || j >= GRID_HEIGHT - 1) {
+        return { Ex: 0, Ey: 0 };
+    }
+    let V_left = potentialGrid[i-1][j];
+    let V_right = potentialGrid[i+1][j];
+    let V_top = potentialGrid[i][j-1];
+    let V_bottom = potentialGrid[i][j+1];
+
+    let Ex = -(V_right - V_left);
+    let Ey = -(V_bottom - V_top);
+    
+    return { Ex, Ey };
+}
+
+function drawSingleFieldLine(startX, startY) {
+    const stepLength = CELL_SIZE / 2;
+    const maxSteps = 400;
+
+    let x = startX;
+    let y = startY;
+
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.strokeStyle = 'rgba(255, 0, 0, 0.7)';
+    ctx.lineWidth = 1.5;
+
+    let arrowPoints = [];
+
+    for (let step = 0; step < maxSteps; step++) {
+        let gridI = Math.floor(x / CELL_SIZE);
+        let gridJ = Math.floor(y / CELL_SIZE);
+
+        if (gridI <= 0 || gridI >= GRID_WIDTH - 1 || gridJ <= 0 || gridJ >= GRID_HEIGHT - 1) break;
+        if (electrodeGrid[gridI][gridJ] === ELECTRODE_CATHODE) break;
+
+        let field = getFieldAt(gridI, gridJ);
+        let mag = Math.sqrt(field.Ex * field.Ex + field.Ey * field.Ey);
+
+        if (mag < 0.1) break;
+
+        x += (field.Ex / mag) * stepLength;
+        y += (field.Ey / mag) * stepLength;
+        ctx.lineTo(x, y);
+
+        if (step % 20 === 0 && step > 0) {
+            let angle = Math.atan2(field.Ey, field.Ex);
+            arrowPoints.push({x: x, y: y, angle: angle});
+        }
+    }
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
+    for (const p of arrowPoints) {
+        const arrowLength = 8;
+        const arrowAngle = Math.PI / 6;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.angle);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(-arrowLength, -arrowAngle);
+        ctx.lineTo(-arrowLength, arrowAngle);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+    }
+}
+
+function drawElectricField() {
+    if (!calculationDone) return;
+
+    const startPointDensity = 10; 
+    let borderCellCount = 0;
+
+    for (let i = 1; i < GRID_WIDTH - 1; i++) {
+        for (let j = 1; j < GRID_HEIGHT - 1; j++) {
+            if (electrodeGrid[i][j] === ELECTRODE_ANODE) {
+                if (electrodeGrid[i+1][j] === ELECTRODE_NONE ||
+                    electrodeGrid[i-1][j] === ELECTRODE_NONE ||
+                    electrodeGrid[i][j+1] === ELECTRODE_NONE ||
+                    electrodeGrid[i][j-1] === ELECTRODE_NONE) 
+                {
+                    borderCellCount++;
+                    if (borderCellCount % startPointDensity === 0) {
+                        let x = i * CELL_SIZE + CELL_SIZE / 2;
+                        let y = j * CELL_SIZE + CELL_SIZE / 2;
+                        drawSingleFieldLine(x, y);
+                    }
+                }
+            }
+        }
+    }
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  
+  if(calculationDone || isCalculating) {
+    if(showEquip) drawEquipotentials();
+    if(showField) drawElectricField();
+  }
+  
+  drawPlates();
+}
+
+/* ---- Interações do usuário ---- */
+
+function resetPlates(){
+  plates = [];
+  const wPlate = 18;
+  const plateHeight = Math.min(380, H*0.5);
+  const cx = W/2;
+  const cy = H/2;
+  const V = parseFloat(voltageRange.value);
+  plates.push({x: cx - 120 - wPlate/2, y: cy-plateHeight/2, w: wPlate, h: plateHeight, potential: V});
+  plates.push({x: cx + 120 - wPlate/2, y: cy-plateHeight/2, w: wPlate, h: plateHeight, potential: -V});
+  
+  updateElectrodeGridFromPlates();
+  draw();
+  requestCalculation();
+}
+
+toggleFieldBtn.addEventListener('click', ()=>{
+    showField = !showField;
+    toggleFieldBtn.classList.toggle('btn-primary', showField);
+    toggleFieldBtn.textContent = showField ? 'Campo (Setas): ON' : 'Campo (Setas): OFF';
+    draw();
+});
+toggleEquipBtn.addEventListener('click', ()=>{
+    showEquip = !showEquip;
+    toggleEquipBtn.classList.toggle('btn-primary', showEquip);
+    toggleEquipBtn.textContent = showEquip ? 'Equipotenciais: ON' : 'Equipotenciais: OFF';
+    draw();
+});
+resetBtn.addEventListener('click', ()=>{
+    resetPlates();
+});
+clearBtn.addEventListener('click', ()=>{
+    plates=[]; 
+    updateElectrodeGridFromPlates();
+    draw();
+    initializeGrids();
+    draw();
+    if(isCalculating) requestCalculation(); 
+    statusEl.textContent = 'Eletrodos removidos.';
+    progressBar.style.display = 'none';
+});
+voltageRange.addEventListener('input', ()=>{
+    voltageLabel.textContent = voltageRange.value;
+    const V = parseFloat(voltageRange.value);
+    for(const p of plates){
+        p.potential = p.potential >=0 ? V : -V;
+    }
+    updateElectrodeGridFromPlates();
+    draw();
+    requestCalculation();
+});
+
+
+canvas.addEventListener('mousedown', (e)=>{
+  if(isCalculating) return; 
+  const mx = e.clientX, my = e.clientY;
+  for(let i=plates.length-1;i>=0;i--){
+    const p = plates[i];
+    if(mx >= p.x && mx <= p.x + p.w && my >= p.y && my <= p.y + p.h){
+      dragging = p;
+      dragOffset.x = mx - p.x;
+      dragOffset.y = my - p.y;
+      return; 
+    }
+  }
+});
+
+window.addEventListener('mousemove', (e)=>{
+  if(!dragging) return;
+  
+  const mx = e.clientX, my = e.clientY;
+  dragging.x = mx - dragOffset.x;
+  dragging.y = my - dragOffset.y;
+  
+  dragging.x = Math.max(0, Math.min(W - dragging.w, dragging.x));
+  dragging.y = Math.max(0, Math.min(H - dragging.h, dragging.y));
+  
+  updateElectrodeGridFromPlates();
+  draw();
+  requestCalculation();
+});
+
+window.addEventListener('mouseup', ()=>{ 
+    dragging = null; 
+});
+
+canvas.addEventListener('dblclick', (e)=>{
+  if(isCalculating) return;
+  const mx=e.clientX, my=e.clientY;
+  for(const p of plates){
+    if(mx >= p.x && mx <= p.x + p.w && my >= p.y && my <= p.y + p.h){
+      p.potential = -p.potential;
+      updateElectrodeGridFromPlates();
+      draw();
+      requestCalculation();
+      return;
+    }
+  }
+});
+
+canvas.addEventListener('contextmenu', (e)=>{
+  e.preventDefault();
+  if(isCalculating) return;
+  
+  const mx=e.clientX, my=e.clientY;
+  const newW = 18, newH = 120;
+  const V = parseFloat(voltageRange.value);
+  const pot = (plates.length % 2 === 0) ? V : -V; 
+  
+  plates.push({x: mx - newW/2, y: my - newH/2, w: newW, h: newH, potential: pot});
+  updateElectrodeGridFromPlates();
+  draw();
+  requestCalculation();
+});
+
+
+/* ---- Loop principal e Inicialização ---- */
+initializeGrids();
+resetPlates(); 
+draw();
+
+</script>
+
+</body>
+</html>

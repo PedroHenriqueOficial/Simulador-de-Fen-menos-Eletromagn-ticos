@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Simulação de Campo Magnético com Guia Interativo</title>
+    
+    <style>
+        :root {
+            --primary-color: #28a745; /* Verde primário para botões e destaque */
+            --secondary-color: #2c3e50; /* Azul escuro quase preto */
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --text-dark: #333;
+            --text-light: #f0f0f0;
+            --avatar-body: #d0dbe5;
+            --avatar-head: #ffffff;
+            --avatar-accent: #ffc107; /* Amarelo para detalhes do avatar */
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: linear-gradient(to bottom, #e0f7fa, #c8e6c9); /* Fundo verde suave */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            border: 1px solid #ccc;
+        }
+
+        #controls button {
+            padding: 8px 12px;
+            cursor: pointer;
+            border: 1px solid var(--primary-color);
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 5px;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        
+        #controls button:hover {
+            background-color: #218838; /* Verde mais escuro no hover */
+        }
+        
+        #controls button:active {
+            transform: scale(0.98);
+        }
+
+        #controls input[type="number"] {
+            width: 60px;
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        
+        #controls div {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        /* --- Interface do Avatar e Explicação --- */
+        .explanation-interface {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            align-items: flex-end;
+            gap: 20px;
+            max-width: 90vw;
+        }
+
+        .explanation-card {
+            background-color: var(--card-bg);
+            color: var(--text-dark);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            width: 450px;
+            border: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .explanation-card h2 {
+            font-size: 1.4rem;
+            color: var(--primary-color);
+            margin: 0;
+        }
+
+        .explanation-card p.explanation-content { /* Adicionei a classe aqui também */
+            font-size: 1rem; /* Tamanho padrão */
+            line-height: 1.6;
+            margin: 0;
+            min-height: 80px; /* Evita que o card pule de tamanho */
+        }
+        
+        /* Estilo para o texto grande e negrito */
+        .explanation-card p.explanation-content .highlight {
+            font-size: 1.3em; /* 1.3 vezes o tamanho do pai (1.3 * 1rem = 1.3rem) */
+            font-weight: bold;
+            color: var(--primary-color); /* Uma cor que se destaque */
+            display: block; /* Para que o texto ocupe sua própria linha */
+            margin: 10px 0; /* Espaço em cima e embaixo */
+        }
+        
+        .navigation-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+
+        .nav-button {
+            padding: 8px 18px;
+            border-radius: 20px;
+            border: 2px solid var(--primary-color);
+            background-color: transparent;
+            color: var(--primary-color);
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .nav-button:hover:not(:disabled) {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .nav-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* --- Estilos do Avatar Robô (Mantidos) --- */
+        .avatar-area {
+            width: 150px;
+            height: 220px;
+            position: relative;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .avatar-head {
+            width: 100px;
+            height: 100px;
+            background: var(--avatar-head);
+            border-radius: 50%;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 4px solid var(--secondary-color);
+        }
+        
+        .avatar-eye {
+            width: 20px;
+            height: 20px;
+            background: var(--secondary-color);
+            border-radius: 50%;
+            position: absolute;
+            top: 35px;
+            animation: blink 4s infinite;
+        }
+        .avatar-eye.left { left: 20px; }
+        .avatar-eye.right { right: 20px; }
+        
+        .avatar-antenna {
+            width: 6px;
+            height: 40px;
+            background: var(--secondary-color);
+            position: absolute;
+            left: 50%;
+            top: -35px;
+            transform: translateX(-50%);
+        }
+        .avatar-antenna::after {
+            content: '';
+            width: 16px;
+            height: 16px;
+            background: var(--avatar-accent);
+            border-radius: 50%;
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: antenna-glow 2s infinite alternate;
+        }
+        
+        .avatar-mouth {
+            width: 30px;
+            height: 5px;
+            background: var(--secondary-color);
+            border-radius: 5px;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .avatar-body {
+            width: 120px;
+            height: 120px;
+            background: var(--avatar-body);
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 30px 30px 15px 15px;
+            border: 4px solid var(--secondary-color);
+        }
+        
+        /* --- Animações do Avatar (Mantidas) --- */
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes blink {
+            0%, 95%, 100% { transform: scaleY(1); }
+            97% { transform: scaleY(0.1); }
+        }
+
+        @keyframes antenna-glow {
+            from { box-shadow: 0 0 5px var(--avatar-accent); }
+            to { box-shadow: 0 0 15px var(--avatar-accent); }
+        }
+
+        .avatar-area.talking .avatar-mouth {
+            animation: talk 0.5s infinite;
+        }
+        
+        @keyframes talk {
+            0% { height: 5px; }
+            50% { height: 15px; border-radius: 50%; }
+            100% { height: 5px; }
+        }
+        
+        /* Responsividade (Mantida) */
+        @media (max-width: 768px) {
+            .explanation-interface {
+                flex-direction: column-reverse;
+                align-items: center;
+                bottom: 10px;
+                right: 0;
+                left: 0;
+                width: 100%;
+            }
+            .explanation-card {
+                width: 85%;
+                padding: 15px;
+            }
+            .avatar-area {
+                transform: scale(0.8);
+                height: 180px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="magneticFieldCanvas"></canvas>
+
+    <div id="controls">
+        <div>
+            <label for="currentMagnitude">Magnitude da Corrente (I):</label>
+            <input type="number" id="currentMagnitude" value="10">
+        </div>
+        <button id="addCurrentOut">Adicionar Corrente Saindo (⊙)</button>
+        <button id="addCurrentIn">Adicionar Corrente Entrando (⊗)</button>
+        <button id="clearCurrents">Limpar Correntes</button>
+        <button id="toggleInteractions">Ligar/Desligar Interações</button> </div>
+
+    <div class="explanation-interface">
+        <div id="avatar-area" class="avatar-area">
+            <div class="avatar-body"></div>
+            <div class="avatar-head">
+                <div class="avatar-antenna"></div>
+                <div class="avatar-eye left"></div>
+                <div class="avatar-eye right"></div>
+                <div class="avatar-mouth"></div>
+            </div>
+        </div>
+        <div class="explanation-card">
+            <h2 id="topic-title"></h2>
+            <p id="explanation-text" class="explanation-content"></p>
+            <div class="navigation-controls">
+                <button id="prev-btn" class="nav-button">Anterior</button>
+                <span id="step-counter"></span>
+                <button id="next-btn" class="nav-button">Próximo</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        const canvas = document.getElementById('magneticFieldCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let currents = []; // Agora são correntes, não cargas
+        let selectedCurrent = null;
+        let offsetX, offsetY;
+
+        const currentMagnitudeInput = document.getElementById('currentMagnitude');
+        const addCurrentOutButton = document.getElementById('addCurrentOut');
+        const addCurrentInButton = document.getElementById('addCurrentIn');
+        const clearCurrentsButton = document.getElementById('clearCurrents');
+        const toggleInteractionsButton = document.getElementById('toggleInteractions'); // Novo botão
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            draw();
+        });
+
+        // Variável para controlar se as interações de força estão ativas
+        let enableInteractions = true;
+
+        class Current {
+            constructor(x, y, magnitude) {
+                this.x = x;
+                this.y = y;
+                // Magnitude positiva para saindo (⊙), negativa para entrando (⊗)
+                this.magnitude = magnitude; 
+                this.radius = 12;
+                this.vx = 0; // Velocidade em x
+                this.vy = 0; // Velocidade em y
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.fillStyle = this.magnitude > 0 ? '#17a2b8' : '#dc3545'; // Azul para saindo, Vermelho para entrando
+                ctx.fill();
+                ctx.stroke();
+                ctx.closePath();
+
+                ctx.fillStyle = 'white';
+                ctx.font = '14px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                // Desenha o símbolo da corrente
+                if (this.magnitude > 0) { // Saindo (dot)
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = 'white';
+                    ctx.fill();
+                    ctx.closePath();
+                } else { // Entrando (x)
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = 'white';
+                    ctx.beginPath();
+                    ctx.moveTo(this.x - 5, this.y - 5);
+                    ctx.lineTo(this.x + 5, this.y + 5);
+                    ctx.moveTo(this.x + 5, this.y - 5);
+                    ctx.lineTo(this.x - 5, this.y + 5);
+                    ctx.stroke();
+                }
+            }
+            update() {
+                // Aplica a velocidade à posição
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Limita a velocidade
+                const maxSpeed = 5;
+                const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                if (currentSpeed > maxSpeed) {
+                    const speedRatio = maxSpeed / currentSpeed;
+                    this.vx *= speedRatio;
+                    this.vy *= speedRatio;
+                }
+                
+                // Dissipação da velocidade (atrito)
+                this.vx *= 0.95;
+                this.vy *= 0.95;
+
+                // Mantém as correntes dentro dos limites do canvas
+                if (this.x < this.radius) { this.x = this.radius; this.vx *= -0.7; }
+                if (this.x > canvas.width - this.radius) { this.x = canvas.width - this.radius; this.vx *= -0.7; }
+                if (this.y < this.radius) { this.y = this.radius; this.vy *= -0.7; }
+                if (this.y > canvas.height - this.radius) { this.y = canvas.height - this.radius; this.vy *= -0.7; }
+            }
+        }
+
+        // Campo Magnético de um Fio Retilíneo Infinito (Regra da Mão Direita)
+        function magneticFieldAtPoint(px, py) {
+            let Bx = 0;
+            let By = 0;
+            const mu0_div_2pi = 1; // Simplificado para visualização (mu0 / (2 * PI))
+
+            for (const current of currents) {
+                const dx = px - current.x;
+                const dy = py - current.y;
+                const r_squared = dx * dx + dy * dy;
+                const r = Math.sqrt(r_squared);
+
+                if (r < current.radius + 2) continue; // Evita divisão por zero e campo infinito na corrente
+
+                const B_magnitude = (mu0_div_2pi * Math.abs(current.magnitude)) / r;
+
+                // Direção é perpendicular ao vetor (dx, dy)
+                if (current.magnitude > 0) { // Corrente SAINDO (anti-horário)
+                    Bx += B_magnitude * (-dy / r); 
+                    By += B_magnitude * (dx / r);  
+                } else { // Corrente ENTRANDO (horário)
+                    Bx += B_magnitude * (dy / r); 
+                    By += B_magnitude * (-dx / r); 
+                }
+            }
+            return { Bx, By };
+        }
+
+        // Calcula e aplica as forças entre as correntes
+        function applyMagneticForces() {
+            if (!enableInteractions) return;
+
+            const force_constant = 100; // Constante para ajustar a intensidade da força
+            const minDistanceSquared = 30 * 30; // Distância mínima para evitar forças muito grandes
+            const repulsionFactor = 5; // Para evitar que correntes se sobreponham
+            
+            for (let i = 0; i < currents.length; i++) {
+                let fx = 0;
+                let fy = 0;
+                const current1 = currents[i];
+
+                for (let j = 0; j < currents.length; j++) {
+                    if (i === j) continue;
+
+                    const current2 = currents[j];
+
+                    const dx = current1.x - current2.x;
+                    const dy = current1.y - current2.y;
+                    let r_squared = dx * dx + dy * dy;
+
+                    // Evita divisão por zero ou forças gigantescas quando muito próximas
+                    if (r_squared < minDistanceSquared) {
+                        r_squared = minDistanceSquared;
+                    }
+                    const r = Math.sqrt(r_squared);
+
+                    // Força entre dois fios paralelos: F = k' * (I1 * I2) / r
+                    // k' = (mu0 / 2pi) ajustado pelo force_constant
+                    const baseForceMagnitude = (force_constant * Math.abs(current1.magnitude) * Math.abs(current2.magnitude)) / r;
+
+                    // Direção da força:
+                    // Se current1.magnitude * current2.magnitude > 0 (mesmo sentido): ATRAÇÃO
+                    // Se current1.magnitude * current2.magnitude < 0 (sentidos opostos): REPULSÃO
+                    let directionMultiplier = 1; // Atração por padrão
+                    if ((current1.magnitude * current2.magnitude) < 0) {
+                        directionMultiplier = -1; // Repulsão
+                    }
+
+                    // Componentes da força (atração/repulsão na linha que une os centros)
+                    fx += directionMultiplier * baseForceMagnitude * (dx / r);
+                    fy += directionMultiplier * baseForceMagnitude * (dy / r);
+
+                    // Adicionar uma pequena repulsão "física" se estiverem MUITO próximas
+                    if (r < current1.radius + current2.radius + 2) {
+                        const overlap = (current1.radius + current2.radius + 2) - r;
+                        const pushMagnitude = overlap * repulsionFactor;
+                        fx += pushMagnitude * (dx / r);
+                        fy += pushMagnitude * (dy / r);
+                    }
+                }
+                // Aplica a força como uma aceleração
+                current1.vx += fx * 0.02; 
+                current1.vy += fy * 0.02;
+            }
+        }
+
+
+        function drawFieldLinesAndArrows() {
+            const gridSize = 30; // Espaçamento entre as setas
+            const arrowSize = 8; // Tamanho da ponta da seta
+
+            for (let x = gridSize; x < canvas.width; x += gridSize) {
+                for (let y = gridSize; y < canvas.height; y += gridSize) {
+                    const field = magneticFieldAtPoint(x, y);
+                    const B_magnitude = Math.sqrt(field.Bx * field.Bx + field.By * field.By);
+
+                    if (B_magnitude > 0.1) { // Desenha seta apenas se o campo for significativo
+                        const angle = Math.atan2(field.By, field.Bx);
+
+                        ctx.beginPath();
+                        ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)'; // Cor das setas
+                        ctx.lineWidth = 1;
+
+                        // Desenha a linha principal da seta
+                        ctx.moveTo(x, y);
+                        const endX = x + (gridSize / 2) * Math.cos(angle);
+                        const endY = y + (gridSize / 2) * Math.sin(angle);
+                        ctx.lineTo(endX, endY);
+                        ctx.stroke();
+
+                        // Desenha a ponta da seta
+                        ctx.beginPath();
+                        ctx.moveTo(endX, endY);
+                        ctx.lineTo(endX - arrowSize * Math.cos(angle - Math.PI / 6), endY - arrowSize * Math.sin(angle - Math.PI / 6));
+                        ctx.moveTo(endX, endY);
+                        ctx.lineTo(endX - arrowSize * Math.cos(angle + Math.PI / 6), endY - arrowSize * Math.sin(angle + Math.PI / 6));
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawFieldLinesAndArrows(); // Desenha as setas do campo
+            for (const current of currents) {
+                current.draw(); // Desenha os símbolos das correntes
+            }
+        }
+
+        canvas.addEventListener('mousedown', (event) => {
+            const mouseX = event.clientX;
+            const mouseY = event.clientY;
+            for (const current of currents) {
+                const distance = Math.sqrt((mouseX - current.x)**2 + (mouseY - current.y)**2);
+                if (distance < current.radius) {
+                    selectedCurrent = current;
+                    offsetX = mouseX - current.x;
+                    offsetY = mouseY - current.y;
+                    // Ao selecionar uma corrente, desativamos sua velocidade para arrastá-la com precisão
+                    selectedCurrent.vx = 0;
+                    selectedCurrent.vy = 0;
+                    break;
+                }
+            }
+        });
+
+        canvas.addEventListener('mousemove', (event) => {
+            if (selectedCurrent) {
+                selectedCurrent.x = event.clientX - offsetX;
+                selectedCurrent.y = event.clientY - offsetY;
+                draw();
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            selectedCurrent = null;
+        });
+
+        addCurrentOutButton.addEventListener('click', () => {
+            const magnitude = parseFloat(currentMagnitudeInput.value);
+            if (!isNaN(magnitude)) {
+                const randomX = Math.random() * (canvas.width - 200) + 100;
+                const randomY = Math.random() * (canvas.height - 200) + 100;
+                currents.push(new Current(randomX, randomY, Math.abs(magnitude))); // magnitude positiva para saindo
+                draw();
+            }
+        });
+
+        addCurrentInButton.addEventListener('click', () => {
+            const magnitude = parseFloat(currentMagnitudeInput.value);
+            if (!isNaN(magnitude)) {
+                const randomX = Math.random() * (canvas.width - 200) + 100;
+                const randomY = Math.random() * (canvas.height - 200) + 100;
+                currents.push(new Current(randomX, randomY, -Math.abs(magnitude))); // magnitude negativa para entrando
+                draw();
+            }
+        });
+
+        clearCurrentsButton.addEventListener('click', () => {
+            currents = [];
+            draw();
+        });
+
+        toggleInteractionsButton.addEventListener('click', () => {
+            enableInteractions = !enableInteractions;
+            toggleInteractionsButton.textContent = enableInteractions ? "Desligar Interações" : "Ligar Interações";
+            if (!enableInteractions) {
+                currents.forEach(current => {
+                    current.vx = 0;
+                    current.vy = 0;
+                });
+            }
+            draw();
+        });
+
+        // Correntes iniciais
+        currents.push(new Current(canvas.width / 3, canvas.height / 2, 10)); // Saindo
+        currents.push(new Current(2 * canvas.width / 3, canvas.height / 2, -10)); // Entrando
+        draw(); // Desenha as correntes iniciais
+
+        // --- LÓGICA DO AVATAR E DA EXPLICAÇÃO (Adaptada para Magnetismo) ---
+        const avatarArea = document.getElementById('avatar-area');
+        const topicTitleElement = document.getElementById('topic-title');
+        const explanationTextElement = document.getElementById('explanation-text');
+        const nextBtn = document.getElementById('next-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const stepCounter = document.getElementById('step-counter');
+
+        const topics = [
+            {
+                title: "Bem-vindo ao Campo Magnético!",
+                explanation: "Olá! Nesta simulação, vamos explorar os mistérios do magnetismo, gerado por correntes elétricas. Prepare-se para ver a física em ação!"
+            },
+            {
+                title: "Correntes Elétricas e Símbolos",
+                explanation: `As bolinhas azuis com um ponto (⊙) representam correntes elétricas <span class="highlight">saindo</span> da tela. As bolinhas vermelhas com um 'X' (⊗) representam correntes <span class="highlight">entrando</span> na tela.`
+            },
+            {
+                title: "Campo Magnético: A Regra da Mão Direita!",
+                explanation: `Uma corrente elétrica gera um campo magnético circular ao seu redor. A direção desse campo é dada pela <span class="highlight">Regra da Mão Direita:</span> Aponte o polegar no sentido da corrente (saindo/entrando) e os dedos indicarão o sentido do campo magnético.`
+            },
+            {
+                title: "Campo Magnético: A Regra da Mão Esquerda!",
+                explanation: `Determina a direção da força magnética sobre um corpo carregado em movimento. Posicionando o polegar, o indicador e o dedo médio perpendicularmente entre si, o polegar aponta para a força magnética, o indicador para o campo magnético e o dedo médio para a velocidade do corpo.`
+            },
+            {
+                title: "Interação Dinâmica das Correntes",
+                explanation: "Correntes elétricas exercem forças umas sobre as outras! Correntes no mesmo sentido se atraem, e correntes em sentidos opostos se repelem. Tente colocar duas correntes saindo próximas!"
+            },
+            {
+                title: "Controlando as Interações",
+                explanation: "Use o botão 'Ligar/Desligar Interações' para pausar o movimento e observar o campo magnético estático ou reposicionar as correntes."
+            },
+            {
+                title: "Visualizando o Campo",
+                explanation: "As pequenas setas na tela mostram a direção e a intensidade do campo magnético em cada ponto. Observe como elas formam círculos ao redor das correntes."
+            },
+            {
+                title: "Interaja com a Simulação",
+                explanation: "Use os botões no canto superior esquerdo para adicionar mais correntes saindo ou entrando da tela. Experimente diferentes configurações."
+            },
+            {
+                title: "Movendo as Correntes",
+                explanation: "Clique e arraste qualquer corrente para movê-la. O campo magnético e as forças se ajustarão em tempo real. A física é fascinante!"
+            },
+            {
+                title: "Exploração Livre",
+                explanation: "Crie suas próprias configurações de correntes! Experimente com diferentes magnitudes e posições para ver como os campos magnéticos interagem e como as correntes se movem. Bom experimento!"
+            }
+        ];
+
+        let currentTopicIndex = 0;
+        let speechSynth = window.speechSynthesis;
+        let utterance = null;
+
+        function speakText(text) {
+            if (speechSynth.speaking) {
+                speechSynth.cancel();
+            }
+
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = text;
+            const plainText = tempDiv.textContent || tempDiv.innerText || '';
+
+            utterance = new SpeechSynthesisUtterance(plainText);
+            utterance.lang = 'pt-BR';
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+
+            utterance.onstart = () => {
+                avatarArea.classList.add('talking');
+            };
+            utterance.onend = () => {
+                avatarArea.classList.remove('talking');
+            };
+            utterance.onerror = (event) => {
+                console.error('SpeechSynthesisUtterance.onerror', event);
+                avatarArea.classList.remove('talking');
+            };
+
+            speechSynth.speak(utterance);
+        }
+
+        function showTopic(index) {
+            if (index < 0 || index >= topics.length) return;
+
+            currentTopicIndex = index;
+            const topic = topics[index];
+
+            topicTitleElement.textContent = topic.title;
+            explanationTextElement.innerHTML = topic.explanation;
+
+            stepCounter.textContent = `${index + 1} / ${topics.length}`;
+
+            speakText(topic.explanation);
+
+            prevBtn.disabled = (index === 0);
+            nextBtn.disabled = (index === topics.length - 1);
+        }
+
+        nextBtn.addEventListener('click', () => {
+            showTopic(currentTopicIndex + 1);
+        });
+
+        prevBtn.addEventListener('click', () => {
+            showTopic(currentTopicIndex - 1);
+        });
+
+        // Inicia o guia
+        showTopic(0);
+
+        // --- Loop de Animação Principal ---
+        function animate() {
+            if (enableInteractions && !selectedCurrent) { // Aplica forças apenas se interações ativadas e nenhuma corrente sendo arrastada
+                applyMagneticForces();
+                currents.forEach(current => current.update());
+            }
+            draw(); // Desenha o campo e as correntes
+            requestAnimationFrame(animate);
+        }
+
+        // Inicia a simulação
+        animate(); // Chama animate para iniciar o loop de renderização e física
+    </script>
+</body>
+</html>
