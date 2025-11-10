@@ -6,6 +6,6 @@ Desenvolvimento de um simulador de fenômenos eletromagnéticos. O simulador foi
 * O segundo voltado à simulação de **campos magnéticos**. 
 * O terceiro dedicado à modelagem de uma **cuba eletrolítica** para o estudo de **campos equipotenciais**.
 
-# ⚡ Simulador de Fenômenos Eletromagneticos 🧲
+# ⚡ Simulador de Fenômenos Eletromagnéticos 🧲
 
 ### 🔋 [Acesse a simulação clicando aqui!](https://pedrohenriqueoficial.github.io/Simulador-de-Fen-menos-Eletromagn-ticos/)
